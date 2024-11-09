@@ -1,0 +1,98 @@
+buildscript {
+    ext.kotlin_version = '1.8.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // Otros classpath...
+    }
+}
+
+plugins { 
+    id "com.android.application"
+    id 'com.google.gms.google-services'
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = 'com.example.gestifit'
+    compileSdkVersion 34  // Ajustado para usar solo una versión
+
+    ndkVersion = flutter.ndkVersion
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    defaultConfig {
+        applicationId "com.example.gestifit"
+        minSdkVersion 23
+        targetSdkVersion 34  // Mantén targetSdk a 34 para mayor compatibilidad
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = ["room.schemaLocation": "$projectDir/schemas"]
+            }
+        }
+    }
+
+    ndkVersion "26.1.10909125"  // Asegúrate de que esta versión esté instalada
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+
+    aaptOptions {
+        noCompress 'tflite'
+        noCompress 'lite'
+    }
+
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/notice.txt'
+        exclude "META-INF/ASL2.0"
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
+    
+    implementation 'org.tensorflow:tensorflow-lite:2.10.0'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:2.10.0'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'com.google.firebase:firebase-iid:20.1.5'
+
+
+
+    // Otras dependencias
+}
+
+flutter {
+    source = "../.."
+}
