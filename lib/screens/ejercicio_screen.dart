@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, unnecessary_to_list_in_spreads, use_super_parameters
+// ignore_for_file: library_private_types_in_public_api, unnecessary_to_list_in_spreads, use_super_parameters, prefer_final_fields
 
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -22,6 +22,13 @@ class _EjercicioScreenState extends State<EjercicioScreen> {
   List<bool> _daysCompleted = List.filled(7, false);
   int _totalMinutes = 0;
   int _totalCalories = 0;
+
+  // Filtros
+  String _selectedCategory = 'All';
+  String _selectedDifficulty = 'All';
+
+  // Recomendaciones personalizadas
+  String _motivationMessage = '¡Vamos! Sigue adelante con tu entrenamiento.';
 
   @override
   void initState() {
@@ -66,22 +73,26 @@ class _EjercicioScreenState extends State<EjercicioScreen> {
     savedExercises.add(exercise);
     await prefs.setStringList('saved_exercises', savedExercises);
 
-    _totalMinutes += minutes;
-    _totalCalories += calories;
+    setState(() {
+      _totalMinutes += minutes;
+      _totalCalories += calories;
+    });
+
     await prefs.setInt('total_minutes', _totalMinutes);
     await prefs.setInt('total_calories', _totalCalories);
   }
 
   Future<void> _loadProgress() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    _completedExercises = prefs.getInt('completed_exercises') ?? 0;
-    _recordDays = prefs.getInt('record_days') ?? 0;
-    _daysCompleted = List<bool>.from(
-        prefs.getStringList('days_completed')?.map((e) => e == 'true') ??
-            List.filled(7, false));
-    _totalMinutes = prefs.getInt('total_minutes') ?? 0;
-    _totalCalories = prefs.getInt('total_calories') ?? 0;
-    setState(() {});
+    setState(() {
+      _completedExercises = prefs.getInt('completed_exercises') ?? 0;
+      _recordDays = prefs.getInt('record_days') ?? 0;
+      _daysCompleted = List<bool>.from(
+          prefs.getStringList('days_completed')?.map((e) => e == 'true') ??
+              List.filled(7, false));
+      _totalMinutes = prefs.getInt('total_minutes') ?? 0;
+      _totalCalories = prefs.getInt('total_calories') ?? 0;
+    });
   }
 
   Future<void> _updateProgress(int dayIndex) async {
@@ -112,6 +123,17 @@ class _EjercicioScreenState extends State<EjercicioScreen> {
     );
   }
 
+  // Filtrar ejercicios
+  List<dynamic> _filterExercises() {
+    return _exercises
+        .where((exercise) =>
+            (_selectedCategory == 'All' ||
+                exercise['category'] == _selectedCategory) &&
+            (_selectedDifficulty == 'All' ||
+                exercise['difficulty'] == _selectedDifficulty))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,6 +147,50 @@ class _EjercicioScreenState extends State<EjercicioScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Sección de filtros
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  DropdownButton<String>(
+                    value: _selectedCategory,
+                    onChanged: (newValue) {
+                      setState(() {
+                        _selectedCategory = newValue!;
+                      });
+                    },
+                    items: ['All', 'Cardio', 'Strength', 'Flexibility']
+                        .map((category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                  ),
+                  DropdownButton<String>(
+                    value: _selectedDifficulty,
+                    onChanged: (newValue) {
+                      setState(() {
+                        _selectedDifficulty = newValue!;
+                      });
+                    },
+                    items: ['All', 'Easy', 'Medium', 'Hard'].map((difficulty) {
+                      return DropdownMenuItem<String>(
+                        value: difficulty,
+                        child: Text(difficulty),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Recomendaciones y motivación
+              Text(
+                'Recomendación del día: $_motivationMessage',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              // Objetivo semanal
               const Text(
                 'Objetivo semanal',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -139,56 +205,8 @@ class _EjercicioScreenState extends State<EjercicioScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.local_fire_department,
-                      color: Colors.orange, size: 30),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Record de Días: $_recordDays',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(7, (index) {
-                    DateTime now = DateTime.now();
-                    DateTime day = now.add(Duration(days: index - 3));
-                    bool isToday = DateFormat('yyyy-MM-dd').format(day) ==
-                        DateFormat('yyyy-MM-dd').format(now);
-                    return GestureDetector(
-                      onTap: () => _updateProgress(index),
-                      child: Column(
-                        children: [
-                          Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight:
-                                  isToday ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor:
-                                isToday ? Colors.blue : Colors.grey,
-                            child: Text(
-                              ['L', 'M', 'X', 'J', 'V', 'S', 'D'][index],
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ),
-              ),
+              // Calendario semanal
+              _buildWeeklyCalendar(),
               const Divider(),
               const SizedBox(height: 20),
               const Text(
@@ -204,15 +222,13 @@ class _EjercicioScreenState extends State<EjercicioScreen> {
                       style: const TextStyle(color: Colors.red)),
                 )
               else
-                ..._exercises.map((exercise) {
+                ..._filterExercises().map((exercise) {
                   return _buildExerciseCard(
                     context,
                     exercise,
                     () {
-                      int minutes =
-                          exercise['duration'] ?? 10; // Valor por defecto
-                      int calories =
-                          exercise['calories'] ?? 50; // Valor por defecto
+                      int minutes = exercise['duration'] ?? 10;
+                      int calories = exercise['calories'] ?? 50;
                       _saveProgress(exercise['name'], minutes, calories);
                       _viewExerciseDetail(exercise);
                     },
@@ -231,6 +247,43 @@ class _EjercicioScreenState extends State<EjercicioScreen> {
         Text(label),
         Text(value, style: const TextStyle(fontSize: 24)),
       ],
+    );
+  }
+
+  Widget _buildWeeklyCalendar() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(7, (index) {
+          DateTime now = DateTime.now();
+          DateTime day = now.add(Duration(days: index - 3));
+          bool isToday = DateFormat('yyyy-MM-dd').format(day) ==
+              DateFormat('yyyy-MM-dd').format(now);
+          return GestureDetector(
+            onTap: () => _updateProgress(index),
+            child: Column(
+              children: [
+                Text(
+                  '${day.day}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: isToday ? Colors.blue : Colors.grey,
+                  child: Text(
+                    ['L', 'M', 'X', 'J', 'V', 'S', 'D'][index],
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 

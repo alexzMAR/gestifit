@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, unused_field, unused_element
+// ignore_for_file: library_private_types_in_public_api, unused_field, unused_element, avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -43,11 +43,28 @@ class _HistorialRitmoScreenState extends State<HistorialRitmoScreen> {
         );
 
         if (response.statusCode == 200) {
-          List<dynamic> data =
-              jsonDecode(response.body)['Historial RitmoCardiaco'];
+          final body = jsonDecode(response.body);
+          print("Cuerpo recibido: $body");
+
+          if (body == null || !body.containsKey('Historial RitmoCardiaco')) {
+            setState(() {
+              _errorMessage =
+                  'La clave "Historial RitmoCardiaco" no existe en la respuesta.';
+            });
+            return;
+          }
+
+          List<dynamic> data = body['Historial RitmoCardiaco'] ?? [];
+          if (data.isEmpty) {
+            setState(() {
+              _errorMessage = 'No hay datos disponibles para este usuario.';
+            });
+            return;
+          }
+
           _ritmoData = data
               .map((item) {
-                String? fecha = item['FechaRegistro'] as String?;
+                String? fecha = item['fecharegistro'] as String?;
                 String? ritmoValue = item['RitmoCardiaco'] as String?;
                 if (fecha != null && ritmoValue != null) {
                   double ritmo = double.tryParse(ritmoValue) ?? 0.0;
@@ -61,9 +78,11 @@ class _HistorialRitmoScreenState extends State<HistorialRitmoScreen> {
               })
               .whereType<FlSpot>()
               .toList();
-          _ritmoData.sort((a, b) =>
-              b.x.compareTo(a.x)); // Ordenar de más reciente a más antiguo
+
+          _ritmoData.sort((a, b) => b.x.compareTo(a.x));
         } else {
+          print("Error de estado HTTP: ${response.statusCode}");
+          print("Respuesta del servidor: ${response.body}");
           setState(() {
             _errorMessage =
                 'Error al obtener el historial: ${response.statusCode}';

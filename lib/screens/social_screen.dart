@@ -1,18 +1,74 @@
-import 'package:flutter/material.dart';
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
 
-class SocialScreen extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:share_plus/share_plus.dart';
+
+class SocialScreen extends StatefulWidget {
   const SocialScreen({super.key});
+
+  @override
+  _SocialScreenState createState() => _SocialScreenState();
+}
+
+class _SocialScreenState extends State<SocialScreen> {
+  // Método para invitar a un amigo
+  Future<void> inviteFriend(BuildContext context) async {
+    String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserUid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Por favor, inicia sesión para invitar amigos.')),
+      );
+      return;
+    }
+
+    String invitationMessage =
+        '¡Únete a la app! Mi ID de usuario es: $currentUserUid';
+
+    // Usar el paquete share_plus para compartir
+    Share.share(invitationMessage);
+  }
+
+  // Método para agregar un amigo
+  Future<void> addFriend(BuildContext context, String friendUid) async {
+    String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserUid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Por favor, inicia sesión para agregar amigos.')),
+      );
+      return;
+    }
+
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    try {
+      // Agregar el UID del amigo a la lista de amigos del usuario actual
+      await firestore.collection('users').doc(currentUserUid).update({
+        'friends': FieldValue.arrayUnion([friendUid])
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Amigo agregado exitosamente.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al agregar amigo: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // Agrega el engranaje para los ajustes
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Navegar a la pantalla de ajustes
               Navigator.pushNamed(context, '/ajustes');
             },
           ),
@@ -32,7 +88,7 @@ class SocialScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 30,
                     backgroundImage:
-                        AssetImage('assets/avatar_placeholder.png'),
+                        AssetImage('assets/images/avatar_placeholder.png'),
                   ),
                   SizedBox(width: 10),
                   Column(
@@ -50,7 +106,7 @@ class SocialScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              // Invitación a un amigo
+              // Tarjeta de invitación
               Card(
                 elevation: 3,
                 shape: RoundedRectangleBorder(
@@ -62,12 +118,11 @@ class SocialScreen extends StatelessWidget {
                       const Text('Invita a un colega',
                           style: TextStyle(fontSize: 18)),
                       const SizedBox(height: 10),
-                      Image.asset('assets/friends_placeholder.png',
-                          height: 50), // Imagen simulada
+                      Image.asset('assets/friends_placeholder.png', height: 50),
                       const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: () {
-                          // Acción de invitar a un amigo
+                          inviteFriend(context);
                         },
                         child: const Text('Invita a un amigo'),
                       ),
@@ -76,12 +131,11 @@ class SocialScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              // Sección de Progreso
               const Text('Progreso',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               LinearProgressIndicator(
-                value: 0.5, // Progreso de pérdida de peso
+                value: 0.5,
                 minHeight: 8,
                 backgroundColor: Colors.grey[300],
                 color: Colors.blue,
@@ -90,7 +144,7 @@ class SocialScreen extends StatelessWidget {
               const Text('Pérdida de Peso: 5.0 / 10.0'),
               const SizedBox(height: 10),
               LinearProgressIndicator(
-                value: 0.66, // Progreso de ganancia muscular
+                value: 0.66,
                 minHeight: 8,
                 backgroundColor: Colors.grey[300],
                 color: Colors.green,
@@ -99,7 +153,7 @@ class SocialScreen extends StatelessWidget {
               const Text('Ganancia Muscular: 3.0 / 5.0'),
               const SizedBox(height: 10),
               LinearProgressIndicator(
-                value: 0.88, // Progreso del índice de masa corporal
+                value: 0.88,
                 minHeight: 8,
                 backgroundColor: Colors.grey[300],
                 color: Colors.orange,
@@ -107,14 +161,14 @@ class SocialScreen extends StatelessWidget {
               const SizedBox(height: 5),
               const Text('Índice de Masa Corporal: 22.0 / 25.0'),
               const SizedBox(height: 20),
-              // Botón de Logros
               const Text('Logros Desbloqueados',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
-                  // Acción para compartir el progreso
-                  Navigator.pushNamed(context, '/compartir_progreso');
+                  // Compartir progreso
+                  Share.share(
+                      '¡Mira mi progreso en la app! Pérdida de peso: 5.0 / 10.0');
                 },
                 child: const Text('Compartir progreso'),
               ),

@@ -70,12 +70,6 @@ class _MonitoreoPageState extends State<MonitoreoPage> {
     _fetchHealthData(); // Cargar datos al inicio
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _fetchHealthData(); // Cargar datos cuando cambian las dependencias
-  }
-
   // Método para obtener los datos de IMC, Ritmo Cardíaco y Consejos
   Future<void> _fetchHealthData() async {
     setState(() {
@@ -169,12 +163,6 @@ class _MonitoreoPageState extends State<MonitoreoPage> {
               const Text(
                 'Progreso de Salud',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Container(
-                height: 200,
-                color: Colors.grey[200],
-                child: const Center(
-                    child: Text('Gráfico de Progreso (Placeholder)')),
               ),
               const SizedBox(height: 20),
               _buildHealthCard(

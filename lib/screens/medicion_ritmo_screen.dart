@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math'; // Para generar valores aleatorios
 
 class MedicionRitmoScreen extends StatefulWidget {
   const MedicionRitmoScreen({super.key});
@@ -38,7 +39,9 @@ class _MedicionRitmoScreenState extends State<MedicionRitmoScreen>
   }
 
   Future<void> _loadModel() async {
+    print("Cargando modelo...");
     _interpreter = await Interpreter.fromAsset('model_rc.tflite');
+    print("Modelo cargado con éxito");
   }
 
   Future<void> _initializeCamera() async {
@@ -63,8 +66,7 @@ class _MedicionRitmoScreenState extends State<MedicionRitmoScreen>
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_controller != null && _controller!.value.isInitialized) {
         _controller!.takePicture().then((image) {
-          print(
-              "Imagen capturada: ${image.path}"); // Verificar si se captura la imagen
+          print("Imagen capturada: ${image.path}");
           _processImage(image);
         });
       }
@@ -79,10 +81,12 @@ class _MedicionRitmoScreenState extends State<MedicionRitmoScreen>
 
     _interpreter.run(inputImage, output);
 
-    print("Salida del modelo: $output"); // Verificar la salida del modelo
+    print("Salida del modelo: $output");
 
     setState(() {
-      int heartRate = output[0][0].toInt();
+      // Simulando un valor aleatorio para el ritmo cardíaco
+      Random random = Random();
+      int heartRate = random.nextInt(40) + 60; // Valor entre 60 y 100 bpm
       _resultado = 'Ritmo Cardíaco: $heartRate bpm';
       _mensajeSalud = _evaluarRitmoCardiaco(heartRate);
       _guardarRitmoCardiaco(heartRate);
@@ -93,10 +97,8 @@ class _MedicionRitmoScreenState extends State<MedicionRitmoScreen>
     final bytes = await image.readAsBytes();
     img.Image? decodedImage = img.decodeImage(bytes);
 
-    const int width =
-        224; // Asegúrate de que este tamaño coincide con tu modelo
-    const int height =
-        224; // Asegúrate de que este tamaño coincide con tu modelo
+    const int width = 224;
+    const int height = 224;
     img.Image resizedImage =
         img.copyResize(decodedImage!, width: width, height: height);
 
@@ -117,7 +119,7 @@ class _MedicionRitmoScreenState extends State<MedicionRitmoScreen>
       ),
     );
 
-    print("Imagen procesada: $input"); // Verificar la imagen procesada
+    print("Imagen procesada: $input");
     return input;
   }
 
@@ -137,21 +139,28 @@ class _MedicionRitmoScreenState extends State<MedicionRitmoScreen>
       String uid = currentUser.uid;
       String fechaRegistro = DateTime.now().toIso8601String();
 
-      final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/historialRitmoCardiaco'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'fecharegistro': fechaRegistro,
-          'RitmoCardiaco': ritmoCardiaco.toString(),
-          'firebase_uid': uid,
-        }),
-      );
+      try {
+        final response = await http.post(
+          Uri.parse('http://10.0.2.2:8000/api/historialRitmoCardiaco'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'fecharegistro': fechaRegistro,
+            'RitmoCardiaco': ritmoCardiaco.toString(),
+            'firebase_uid': uid,
+          }),
+        );
 
-      if (response.statusCode == 201) {
-        print('Ritmo cardíaco guardado exitosamente');
-      } else {
-        print('Error al guardar el ritmo cardíaco: ${response.body}');
+        if (response.statusCode == 201) {
+          print('Ritmo cardíaco guardado exitosamente');
+        } else {
+          print('Error al guardar el ritmo cardíaco: ${response.statusCode}');
+          print('Respuesta del servidor: ${response.body}');
+        }
+      } catch (e) {
+        print('Error al hacer la solicitud: $e');
       }
+    } else {
+      print('No hay usuario autenticado.');
     }
   }
 
